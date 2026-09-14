@@ -1,0 +1,3010 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>BIMids Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f5f7fa; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; background: linear-gradient(135deg, #667eea, #764ba2); padding: 40px 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3); }
+        .header h1 { font-size: 32px; color: white; margin-bottom: 10px; }
+        .header p { color: rgba(255,255,255,0.95); font-size: 16px; }
+        .main { display: grid; grid-template-columns: 300px 1fr; gap: 20px; }
+        .sidebar { background: white; border-radius: 12px; padding: 20px; height: fit-content; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .sidebar h2 { font-size: 18px; margin-bottom: 15px; }
+        .quick-actions { display: flex; gap: 8px; margin-bottom: 15px; }
+        .btn { padding: 8px 12px; border: none; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 600; }
+        .btn-reset { background: #e74c3c; color: white; }
+        .btn-quick { background: #3498db; color: white; }
+        .use-case-card { padding: 12px; margin-bottom: 8px; border: 2px solid #ecf0f1; border-radius: 8px; cursor: pointer; }
+        .use-case-card:hover { border-color: #3498db; }
+        .use-case-card.selected { background: #e8f4f8; border-color: #3498db; }
+        .use-case-card.baseline { border-color: #9b59b6; background: #f4ecf7; }
+        .card-header { display: flex; align-items: center; gap: 8px; }
+        .card-name { flex: 1; font-size: 13px; font-weight: 500; }
+        .card-score { font-size: 12px; font-weight: 700; color: #7f8c8d; }
+        .card-meta { font-size: 11px; color: #95a5a6; margin-top: 4px; margin-left: 24px; }
+        .divider { height: 1px; background: #ecf0f1; margin: 12px 0; }
+        .section-header { font-size: 11px; font-weight: 700; color: #7f8c8d; margin: 12px 0 8px; text-transform: uppercase; }
+        .content { background: white; border-radius: 12px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .empty-state { text-align: center; padding: 100px 20px; color: #95a5a6; font-size: 18px; }
+        .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+        .metric { background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 20px; border-radius: 10px; }
+        .metric-label { font-size: 12px; opacity: 0.9; margin-bottom: 8px; }
+        .metric-value { font-size: 30px; font-weight: 700; }
+        .metric-sub { font-size: 11px; margin-top: 5px; opacity: 0.8; }
+        .object-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 30px; }
+        .object-card { padding: 18px; border-radius: 10px; }
+        .object-card-name { font-size: 11px; opacity: 0.9; margin-bottom: 6px; font-weight: 600; }
+        .object-card-value { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+        .object-card-label { font-size: 10px; opacity: 0.85; }
+        .object-card-details { font-size: 9px; opacity: 0.8; margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 6px; }
+        .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        .chart-box { border: 1px solid #ecf0f1; border-radius: 10px; padding: 20px; }
+        .chart-title { font-size: 15px; font-weight: 600; margin-bottom: 15px; }
+        .chart-canvas { height: 300px; }
+        .rec-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .rec-table th { background: #f8f9fa; padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #dee2e6; }
+        .rec-table td { padding: 12px; border-bottom: 1px solid #ecf0f1; }
+        .rec-table tr:hover { background: #f8f9fa; cursor: pointer; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+        .badge-top-tier { background: #27ae60; color: white; }
+        .badge-high { background: #3498db; color: white; }
+        .badge-moderate { background: #f39c12; color: white; }
+        .badge-low { background: #95a5a6; color: white; }
+        .badge-minimal { background: #bdc3c7; color: white; }
+        .ifc-upload-area { border: 2px dashed #3498db; border-radius: 10px; padding: 15px; text-align: center; margin-bottom: 15px; cursor: pointer; transition: all 0.2s; background: #f8fbff; }
+        .ifc-upload-area:hover { background: #e8f4f8; border-color: #2980b9; }
+        .ifc-upload-area.dragover { background: #d5edfa; border-color: #2980b9; }
+        .ifc-upload-area.loaded { border-color: #27ae60; background: #f0faf4; }
+        .ifc-upload-icon { font-size: 24px; margin-bottom: 5px; }
+        .ifc-upload-text { font-size: 12px; color: #7f8c8d; }
+        .ifc-upload-file { font-size: 11px; color: #27ae60; font-weight: 600; margin-top: 4px; }
+        .ifc-status { font-size: 11px; padding: 6px 10px; border-radius: 6px; margin-bottom: 10px; }
+        .ifc-status.parsing { background: #fff3e0; color: #e65100; }
+        .ifc-status.done { background: #e8f5e9; color: #2e7d32; }
+        .ifc-status.error { background: #ffebee; color: #c62828; }
+        .comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        .comparison-panel { border: 2px solid #ecf0f1; border-radius: 10px; padding: 20px; }
+        .comparison-panel.bimids-panel { border-color: #667eea; }
+        .comparison-panel.ifc-panel { border-color: #27ae60; }
+        .comparison-panel-title { font-size: 14px; font-weight: 700; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .comparison-panel-title .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .dot-bimids { background: #667eea; }
+        .dot-ifc { background: #27ae60; }
+        .comp-metric { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        .comp-metric-label { color: #7f8c8d; }
+        .comp-metric-value { font-weight: 700; }
+        .comp-bar { height: 8px; border-radius: 4px; background: #ecf0f1; margin-top: 4px; overflow: hidden; }
+        .comp-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+        .ifc-clear-btn { background: none; border: 1px solid #e74c3c; color: #e74c3c; padding: 4px 8px; border-radius: 4px; font-size: 10px; cursor: pointer; margin-left: 8px; }
+        .ifc-clear-btn:hover { background: #e74c3c; color: white; }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <script>
+        // Placeholder - will be replaced with actual data
+        const USE_CASES = [
+            {
+                        "name": "2D documents ",
+                        "score": 374.0,
+                        "density": 5.05,
+                        "objects": 74,
+                        "geom": 374,
+                        "props": 0,
+                        "docs": 0,
+                        "p1": 0.045,
+                        "p2": 0.142,
+                        "p3": 0.266,
+                        "p4": 0.274,
+                        "p5": 0.274
+            },
+            {
+                        "name": "Access management ",
+                        "score": 43.0,
+                        "density": 7.17,
+                        "objects": 6,
+                        "geom": 21,
+                        "props": 22,
+                        "docs": 0,
+                        "p1": 0.0,
+                        "p2": 0.0,
+                        "p3": 0.333,
+                        "p4": 0.333,
+                        "p5": 0.333
+            },
+            {
+                        "name": "Acoustics ",
+                        "score": 186.0,
+                        "density": 6.64,
+                        "objects": 28,
+                        "geom": 90,
+                        "props": 96,
+                        "docs": 0,
+                        "p1": 0.0,
+                        "p2": 0.33,
+                        "p3": 0.335,
+                        "p4": 0.335,
+                        "p5": 0.0
+            },
+            {
+                        "name": "Architectural design",
+                        "score": 218.0,
+                        "density": 5.07,
+                        "objects": 43,
+                        "geom": 161,
+                        "props": 57,
+                        "docs": 0,
+                        "p1": 0.132,
+                        "p2": 0.255,
+                        "p3": 0.305,
+                        "p4": 0.308,
+                        "p5": 0.0
+            },
+            {
+                        "name": "Building permit ",
+                        "score": 186.0,
+                        "density": 4.77,
+                        "objects": 39,
+                        "geom": 151,
+                        "props": 35,
+                        "docs": 0,
+                        "p1": 0.0,
+                        "p2": 0.329,
+                        "p3": 0.336,
+                        "p4": 0.336,
+                        "p5": 0.0
+            },
+            {
+                        "name": "Clash detection ",
+                        "score": 342.0,
+                        "density": 4.5,
+                        "objects": 76,
+                        "geom": 330,
+                        "props": 12,
+                        "docs": 0,
+                        "p1": 0.042,
+                        "p2": 0.135,
+                        "p3": 0.271,
+                        "p4": 0.279,
+                        "p5": 0.274
+            },
+            {
+                        "name": "Concrete precast",
+                        "score": 0.0,
+                        "density": 0.0,
+                        "objects": 0,
+                        "geom": 0,
+                        "props": 0,
+                        "docs": 0,
+                        "p1": 0.0,
+                        "p2": 0.0,
+                        "p3": 0.0,
+                        "p4": 0.0,
+                        "p5": 0.0
+            },
+            {
+                        "name": "Electrical design ",
+                        "score": 103.0,
+                        "density": 4.68,
+                        "objects": 22,
+                        "geom": 75,
+                        "props": 28,
+                        "docs": 0,
+                        "p1": 0.028,
+                        "p2": 0.155,
+                        "p3": 0.38,
+                        "p4": 0.437,
+                        "p5": 0.0
+            },
+            {
+                        "name": "Fire safety ",
+                        "score": 241.0,
+                        "density": 6.34,
+                        "objects": 38,
+                        "geom": 139,
+                        "props": 102,
+                        "docs": 0,
+                        "p1": 0.074,
+                        "p2": 0.178,
+                        "p3": 0.246,
+                        "p4": 0.251,
+                        "p5": 0.251
+            },
+            {
+                        "name": "Handicap accessibility ",
+                        "score": 73.0,
+                        "density": 5.21,
+                        "objects": 14,
+                        "geom": 53,
+                        "props": 20,
+                        "docs": 0,
+                        "p1": 0.067,
+                        "p2": 0.196,
+                        "p3": 0.244,
+                        "p4": 0.256,
+                        "p5": 0.237
+            },
+            {
+                        "name": "Heat loss calculation",
+                        "score": 86.0,
+                        "density": 5.38,
+                        "objects": 16,
+                        "geom": 47,
+                        "props": 39,
+                        "docs": 0,
+                        "p1": 0.255,
+                        "p2": 0.372,
+                        "p3": 0.372,
+                        "p4": 0.0,
+                        "p5": 0.0
+            },
+            {
+                        "name": "Intrusion and surveillance ",
+                        "score": 44.0,
+                        "density": 6.29,
+                        "objects": 7,
+                        "geom": 25,
+                        "props": 19,
+                        "docs": 0,
+                        "p1": 0.0,
+                        "p2": 0.0,
+                        "p3": 0.323,
+                        "p4": 0.338,
+                        "p5": 0.338
+            },
+            {
+                        "name": "LCA (Life Cycle Analysis)",
+                        "score": 170.0,
+                        "density": 6.54,
+                        "objects": 26,
+                        "geom": 87,
+                        "props": 83,
+                        "docs": 0,
+                        "p1": 0.0,
+                        "p2": 0.285,
+                        "p3": 0.318,
+                        "p4": 0.397,
+                        "p5": 0.0
+            },
+            {
+                        "name": "Maintenance ",
+                        "score": 552.0,
+                        "density": 9.52,
+                        "objects": 58,
+                        "geom": 233,
+                        "props": 319,
+                        "docs": 0,
+                        "p1": 0.0,
+                        "p2": 0.0,
+                        "p3": 0.0,
+                        "p4": 0.5,
+                        "p5": 0.5
+            },
+            {
+                        "name": "Minimum requirements",
+                        "score": 794.5,
+                        "density": 9.93,
+                        "objects": 80,
+                        "geom": 9,
+                        "props": 450,
+                        "docs": 671,
+                        "p1": 0.041,
+                        "p2": 0.16,
+                        "p3": 0.218,
+                        "p4": 0.301,
+                        "p5": 0.279
+            },
+            {
+                        "name": "Optional requirements",
+                        "score": 552.0,
+                        "density": 6.99,
+                        "objects": 79,
+                        "geom": 132,
+                        "props": 386,
+                        "docs": 68,
+                        "p1": 0.061,
+                        "p2": 0.132,
+                        "p3": 0.225,
+                        "p4": 0.291,
+                        "p5": 0.292
+            },
+            {
+                        "name": "PEB ",
+                        "score": 188.0,
+                        "density": 5.88,
+                        "objects": 32,
+                        "geom": 106,
+                        "props": 82,
+                        "docs": 0,
+                        "p1": 0.0,
+                        "p2": 0.222,
+                        "p3": 0.259,
+                        "p4": 0.259,
+                        "p5": 0.259
+            },
+            {
+                        "name": "Precasting ",
+                        "score": 134.0,
+                        "density": 7.05,
+                        "objects": 19,
+                        "geom": 97,
+                        "props": 37,
+                        "docs": 0,
+                        "p1": 0.0,
+                        "p2": 0.0,
+                        "p3": 0.5,
+                        "p4": 0.5,
+                        "p5": 0.0
+            },
+            {
+                        "name": "Programming ",
+                        "score": 5.0,
+                        "density": 5.0,
+                        "objects": 1,
+                        "geom": 2,
+                        "props": 3,
+                        "docs": 0,
+                        "p1": 1.0,
+                        "p2": 0.0,
+                        "p3": 0.0,
+                        "p4": 0.0,
+                        "p5": 0.0
+            },
+            {
+                        "name": "Rendering ",
+                        "score": 144.0,
+                        "density": 3.89,
+                        "objects": 37,
+                        "geom": 144,
+                        "props": 0,
+                        "docs": 0,
+                        "p1": 0.083,
+                        "p2": 0.163,
+                        "p3": 0.251,
+                        "p4": 0.251,
+                        "p5": 0.251
+            },
+            {
+                        "name": "Sanitary/HVAC design ",
+                        "score": 136.0,
+                        "density": 5.91,
+                        "objects": 23,
+                        "geom": 103,
+                        "props": 33,
+                        "docs": 0,
+                        "p1": 0.032,
+                        "p2": 0.158,
+                        "p3": 0.402,
+                        "p4": 0.408,
+                        "p5": 0.0
+            },
+            {
+                        "name": "Structural design ",
+                        "score": 107.0,
+                        "density": 8.92,
+                        "objects": 12,
+                        "geom": 64,
+                        "props": 43,
+                        "docs": 0,
+                        "p1": 0.0,
+                        "p2": 0.215,
+                        "p3": 0.392,
+                        "p4": 0.392,
+                        "p5": 0.0
+            }
+];
+        const INCREMENTAL = {
+            "Maintenance ": {
+                        "marginal": 127.0,
+                        "unique": 92.0
+            },
+            "Fire safety ": {
+                        "marginal": 56.0,
+                        "unique": 91.8
+            },
+            "Architectural design": {
+                        "marginal": 53.0,
+                        "unique": 93.0
+            },
+            "PEB ": {
+                        "marginal": 48.0,
+                        "unique": 98.0
+            },
+            "Sanitary/HVAC design ": {
+                        "marginal": 37.0,
+                        "unique": 97.4
+            },
+            "Building permit ": {
+                        "marginal": 35.0,
+                        "unique": 92.1
+            },
+            "Handicap accessibility ": {
+                        "marginal": 34.0,
+                        "unique": 97.1
+            },
+            "Clash detection ": {
+                        "marginal": 30.0,
+                        "unique": 78.9
+            },
+            "Access management ": {
+                        "marginal": 28.0,
+                        "unique": 96.6
+            },
+            "2D documents ": {
+                        "marginal": 27.0,
+                        "unique": 84.4
+            },
+            "Electrical design ": {
+                        "marginal": 25.0,
+                        "unique": 92.6
+            },
+            "Acoustics ": {
+                        "marginal": 24.0,
+                        "unique": 92.3
+            },
+            "Intrusion and surveillance ": {
+                        "marginal": 23.0,
+                        "unique": 100.0
+            },
+            "Rendering ": {
+                        "marginal": 23.0,
+                        "unique": 95.8
+            },
+            "Structural design ": {
+                        "marginal": 20.0,
+                        "unique": 100.0
+            },
+            "Precasting ": {
+                        "marginal": 20.0,
+                        "unique": 90.9
+            },
+            "LCA (Life Cycle Analysis)": {
+                        "marginal": 19.0,
+                        "unique": 100.0
+            },
+            "Heat loss calculation": {
+                        "marginal": 15.0,
+                        "unique": 93.8
+            },
+            "Optional requirements": {
+                        "marginal": 13.5,
+                        "unique": 70.0
+            },
+            "Programming ": {
+                        "marginal": 4.0,
+                        "unique": 80.0
+            },
+            "Concrete precast": {
+                        "marginal": 0.0,
+                        "unique": 0.0
+            }
+};
+        const OBJECTS = [
+            {
+                        "name": "Door",
+                        "purposeCount": 16,
+                        "cumulativeReqs": 172,
+                        "intensity": 10.8,
+                        "compG": 47.1,
+                        "compA": 45.9,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Window",
+                        "purposeCount": 16,
+                        "cumulativeReqs": 148,
+                        "intensity": 9.2,
+                        "compG": 48.0,
+                        "compA": 44.6,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Ramp",
+                        "purposeCount": 15,
+                        "cumulativeReqs": 133,
+                        "intensity": 8.9,
+                        "compG": 56.4,
+                        "compA": 33.1,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Space",
+                        "purposeCount": 17,
+                        "cumulativeReqs": 125,
+                        "intensity": 7.4,
+                        "compG": 24.0,
+                        "compA": 72.0,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Slab",
+                        "purposeCount": 14,
+                        "cumulativeReqs": 122,
+                        "intensity": 8.7,
+                        "compG": 54.1,
+                        "compA": 34.4,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Wall",
+                        "purposeCount": 14,
+                        "cumulativeReqs": 119,
+                        "intensity": 8.5,
+                        "compG": 51.3,
+                        "compA": 37.8,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Technical floor",
+                        "purposeCount": 16,
+                        "cumulativeReqs": 110,
+                        "intensity": 6.9,
+                        "compG": 55.5,
+                        "compA": 36.4,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Slab-on-grade",
+                        "purposeCount": 13,
+                        "cumulativeReqs": 108,
+                        "intensity": 8.3,
+                        "compG": 52.8,
+                        "compA": 34.3,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Floor finishing",
+                        "purposeCount": 15,
+                        "cumulativeReqs": 103,
+                        "intensity": 6.9,
+                        "compG": 56.3,
+                        "compA": 34.0,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Roof finishing",
+                        "purposeCount": 15,
+                        "cumulativeReqs": 102,
+                        "intensity": 6.8,
+                        "compG": 56.9,
+                        "compA": 34.3,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "False ceiling",
+                        "purposeCount": 15,
+                        "cumulativeReqs": 102,
+                        "intensity": 6.8,
+                        "compG": 57.8,
+                        "compA": 37.3,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Column",
+                        "purposeCount": 12,
+                        "cumulativeReqs": 101,
+                        "intensity": 8.4,
+                        "compG": 54.5,
+                        "compA": 33.7,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Lift",
+                        "purposeCount": 12,
+                        "cumulativeReqs": 99,
+                        "intensity": 8.2,
+                        "compG": 43.4,
+                        "compA": 49.5,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Beam",
+                        "purposeCount": 12,
+                        "cumulativeReqs": 98,
+                        "intensity": 8.2,
+                        "compG": 54.1,
+                        "compA": 31.6,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Wall finishing",
+                        "purposeCount": 14,
+                        "cumulativeReqs": 98,
+                        "intensity": 7.0,
+                        "compG": 59.2,
+                        "compA": 35.7,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Linear structural member",
+                        "purposeCount": 15,
+                        "cumulativeReqs": 94,
+                        "intensity": 6.3,
+                        "compG": 52.1,
+                        "compA": 40.4,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Roof",
+                        "purposeCount": 13,
+                        "cumulativeReqs": 86,
+                        "intensity": 6.6,
+                        "compG": 55.8,
+                        "compA": 37.2,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Ceiling finishing",
+                        "purposeCount": 14,
+                        "cumulativeReqs": 84,
+                        "intensity": 6.0,
+                        "compG": 53.6,
+                        "compA": 35.7,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Curtain wall",
+                        "purposeCount": 12,
+                        "cumulativeReqs": 76,
+                        "intensity": 6.3,
+                        "compG": 55.3,
+                        "compA": 32.9,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Transport equipment (excluding ",
+                        "purposeCount": 11,
+                        "cumulativeReqs": 75,
+                        "intensity": 6.8,
+                        "compG": 64.0,
+                        "compA": 26.7,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Stair (concrete)",
+                        "purposeCount": 13,
+                        "cumulativeReqs": 74,
+                        "intensity": 5.7,
+                        "compG": 37.8,
+                        "compA": 50.0,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Lightfixture",
+                        "purposeCount": 11,
+                        "cumulativeReqs": 73,
+                        "intensity": 6.6,
+                        "compG": 50.7,
+                        "compA": 39.7,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Safety lighting",
+                        "purposeCount": 9,
+                        "cumulativeReqs": 72,
+                        "intensity": 8.0,
+                        "compG": 38.9,
+                        "compA": 50.0,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Chiller",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 70,
+                        "intensity": 8.8,
+                        "compG": 41.4,
+                        "compA": 40.0,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Heat production - water",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 68,
+                        "intensity": 8.5,
+                        "compG": 41.2,
+                        "compA": 39.7,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Heat production - steam",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 68,
+                        "intensity": 8.5,
+                        "compG": 42.6,
+                        "compA": 38.2,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Foundation beam",
+                        "purposeCount": 10,
+                        "cumulativeReqs": 65,
+                        "intensity": 6.5,
+                        "compG": 47.7,
+                        "compA": 33.8,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Water collector",
+                        "purposeCount": 12,
+                        "cumulativeReqs": 62,
+                        "intensity": 5.2,
+                        "compG": 66.1,
+                        "compA": 24.2,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Solar panel",
+                        "purposeCount": 9,
+                        "cumulativeReqs": 62,
+                        "intensity": 6.9,
+                        "compG": 56.5,
+                        "compA": 21.0,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Deep foundation",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 62,
+                        "intensity": 7.8,
+                        "compG": 48.4,
+                        "compA": 35.5,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Foundation footing",
+                        "purposeCount": 10,
+                        "cumulativeReqs": 61,
+                        "intensity": 6.1,
+                        "compG": 50.8,
+                        "compA": 31.1,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Breeching inlet",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 59,
+                        "intensity": 7.4,
+                        "compG": 42.4,
+                        "compA": 40.7,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Fan",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 59,
+                        "intensity": 7.4,
+                        "compG": 50.8,
+                        "compA": 30.5,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Fire hose reel",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 59,
+                        "intensity": 7.4,
+                        "compG": 39.0,
+                        "compA": 44.1,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Air handling unit",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 59,
+                        "intensity": 7.4,
+                        "compG": 55.9,
+                        "compA": 22.0,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Furniture",
+                        "purposeCount": 10,
+                        "cumulativeReqs": 57,
+                        "intensity": 5.7,
+                        "compG": 50.9,
+                        "compA": 36.8,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Sanitary equipment",
+                        "purposeCount": 9,
+                        "cumulativeReqs": 55,
+                        "intensity": 6.1,
+                        "compG": 45.5,
+                        "compA": 38.2,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Caisson foundation",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 54,
+                        "intensity": 6.8,
+                        "compG": 44.4,
+                        "compA": 35.2,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Heatcold distribution - convect",
+                        "purposeCount": 7,
+                        "cumulativeReqs": 54,
+                        "intensity": 7.7,
+                        "compG": 42.6,
+                        "compA": 33.3,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Electric appliance",
+                        "purposeCount": 9,
+                        "cumulativeReqs": 54,
+                        "intensity": 6.0,
+                        "compG": 50.0,
+                        "compA": 31.5,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Heat diffusion - radiator",
+                        "purposeCount": 7,
+                        "cumulativeReqs": 54,
+                        "intensity": 7.7,
+                        "compG": 42.6,
+                        "compA": 33.3,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Sanitaryheating pipe fitting",
+                        "purposeCount": 7,
+                        "cumulativeReqs": 54,
+                        "intensity": 7.7,
+                        "compG": 57.4,
+                        "compA": 24.1,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Fire hydrant",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 54,
+                        "intensity": 6.8,
+                        "compG": 40.7,
+                        "compA": 40.7,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Tank",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 53,
+                        "intensity": 6.6,
+                        "compG": 41.5,
+                        "compA": 39.6,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Air-to-air exchanger",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 53,
+                        "intensity": 6.6,
+                        "compG": 45.3,
+                        "compA": 30.2,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Heatcold diffusion - surface",
+                        "purposeCount": 7,
+                        "cumulativeReqs": 52,
+                        "intensity": 7.4,
+                        "compG": 44.2,
+                        "compA": 30.8,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Sprinkler",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 52,
+                        "intensity": 6.5,
+                        "compG": 36.5,
+                        "compA": 46.2,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Electrical generator",
+                        "purposeCount": 7,
+                        "cumulativeReqs": 51,
+                        "intensity": 7.3,
+                        "compG": 43.1,
+                        "compA": 31.4,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Ventilation duct",
+                        "purposeCount": 6,
+                        "cumulativeReqs": 51,
+                        "intensity": 8.5,
+                        "compG": 49.0,
+                        "compA": 27.5,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Electrical transformer",
+                        "purposeCount": 7,
+                        "cumulativeReqs": 49,
+                        "intensity": 7.0,
+                        "compG": 42.9,
+                        "compA": 30.6,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Pump",
+                        "purposeCount": 6,
+                        "cumulativeReqs": 49,
+                        "intensity": 8.2,
+                        "compG": 40.8,
+                        "compA": 34.7,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Chimney",
+                        "purposeCount": 9,
+                        "cumulativeReqs": 49,
+                        "intensity": 5.4,
+                        "compG": 61.2,
+                        "compA": 24.5,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Electricity storage",
+                        "purposeCount": 6,
+                        "cumulativeReqs": 48,
+                        "intensity": 8.0,
+                        "compG": 39.6,
+                        "compA": 31.2,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Stair (not concrete)",
+                        "purposeCount": 11,
+                        "cumulativeReqs": 48,
+                        "intensity": 4.4,
+                        "compG": 39.6,
+                        "compA": 45.8,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Fire protection cabinet",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 48,
+                        "intensity": 6.0,
+                        "compG": 45.8,
+                        "compA": 33.3,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Data device",
+                        "purposeCount": 9,
+                        "cumulativeReqs": 48,
+                        "intensity": 5.3,
+                        "compG": 52.1,
+                        "compA": 29.2,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Ventilation air terminal",
+                        "purposeCount": 6,
+                        "cumulativeReqs": 48,
+                        "intensity": 8.0,
+                        "compG": 37.5,
+                        "compA": 41.7,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Electrical panel",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 48,
+                        "intensity": 6.0,
+                        "compG": 50.0,
+                        "compA": 27.1,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Electrical switch",
+                        "purposeCount": 7,
+                        "cumulativeReqs": 47,
+                        "intensity": 6.7,
+                        "compG": 42.6,
+                        "compA": 42.6,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Extinguisher",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 46,
+                        "intensity": 5.8,
+                        "compG": 50.0,
+                        "compA": 30.4,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Audiovisual device",
+                        "purposeCount": 8,
+                        "cumulativeReqs": 45,
+                        "intensity": 5.6,
+                        "compG": 48.9,
+                        "compA": 31.1,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Ventilation duct connection",
+                        "purposeCount": 6,
+                        "cumulativeReqs": 45,
+                        "intensity": 7.5,
+                        "compG": 46.7,
+                        "compA": 31.1,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Damper and register",
+                        "purposeCount": 6,
+                        "cumulativeReqs": 45,
+                        "intensity": 7.5,
+                        "compG": 48.9,
+                        "compA": 31.1,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Pipe segment",
+                        "purposeCount": 7,
+                        "cumulativeReqs": 44,
+                        "intensity": 6.3,
+                        "compG": 47.7,
+                        "compA": 29.5,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Electrical outlet",
+                        "purposeCount": 6,
+                        "cumulativeReqs": 44,
+                        "intensity": 7.3,
+                        "compG": 38.6,
+                        "compA": 45.5,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Ventilation silencer",
+                        "purposeCount": 6,
+                        "cumulativeReqs": 44,
+                        "intensity": 7.3,
+                        "compG": 50.0,
+                        "compA": 29.5,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Opening",
+                        "purposeCount": 11,
+                        "cumulativeReqs": 43,
+                        "intensity": 3.9,
+                        "compG": 62.8,
+                        "compA": 32.6,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Filter",
+                        "purposeCount": 6,
+                        "cumulativeReqs": 40,
+                        "intensity": 6.7,
+                        "compG": 45.0,
+                        "compA": 32.5,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Management panel",
+                        "purposeCount": 6,
+                        "cumulativeReqs": 38,
+                        "intensity": 6.3,
+                        "compG": 42.1,
+                        "compA": 34.2,
+                        "phaseCoverage": 4
+            },
+            {
+                        "name": "Actuator",
+                        "purposeCount": 6,
+                        "cumulativeReqs": 38,
+                        "intensity": 6.3,
+                        "compG": 42.1,
+                        "compA": 34.2,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Cable tray",
+                        "purposeCount": 7,
+                        "cumulativeReqs": 37,
+                        "intensity": 5.3,
+                        "compG": 48.6,
+                        "compA": 32.4,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Electrical protection equipment",
+                        "purposeCount": 6,
+                        "cumulativeReqs": 36,
+                        "intensity": 6.0,
+                        "compG": 38.9,
+                        "compA": 36.1,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Cable tray connection",
+                        "purposeCount": 7,
+                        "cumulativeReqs": 36,
+                        "intensity": 5.1,
+                        "compG": 47.2,
+                        "compA": 33.3,
+                        "phaseCoverage": 3
+            },
+            {
+                        "name": "Railing",
+                        "purposeCount": 7,
+                        "cumulativeReqs": 33,
+                        "intensity": 4.7,
+                        "compG": 48.5,
+                        "compA": 36.4,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Zone",
+                        "purposeCount": 10,
+                        "cumulativeReqs": 26,
+                        "intensity": 2.6,
+                        "compG": 57.7,
+                        "compA": 26.9,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Building",
+                        "purposeCount": 3,
+                        "cumulativeReqs": 16,
+                        "intensity": 5.3,
+                        "compG": 0.0,
+                        "compA": 68.8,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Terrain",
+                        "purposeCount": 3,
+                        "cumulativeReqs": 12,
+                        "intensity": 4.0,
+                        "compG": 8.3,
+                        "compA": 66.7,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Provision for void",
+                        "purposeCount": 3,
+                        "cumulativeReqs": 11,
+                        "intensity": 3.7,
+                        "compG": 27.3,
+                        "compA": 72.7,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Project",
+                        "purposeCount": 2,
+                        "cumulativeReqs": 6,
+                        "intensity": 3.0,
+                        "compG": 0.0,
+                        "compA": 100.0,
+                        "phaseCoverage": 5
+            },
+            {
+                        "name": "Site",
+                        "purposeCount": 1,
+                        "cumulativeReqs": 5,
+                        "intensity": 5.0,
+                        "compG": 20.0,
+                        "compA": 40.0,
+                        "phaseCoverage": 5
+            }
+];
+        const OBJECT_PURPOSE_MAP = {
+            "Furniture": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Intrusion and surveillance ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Precasting ",
+                        "Rendering "
+            ],
+            "Air-to-air exchanger": [
+                        "2D documents ",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Sanitary/HVAC design "
+            ],
+            "Breeching inlet": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering "
+            ],
+            "Actuator": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Pipe segment": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Sanitary/HVAC design "
+            ],
+            "Space": [
+                        "2D documents ",
+                        "Access management ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "Heat loss calculation",
+                        "Intrusion and surveillance ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Programming ",
+                        "Sanitary/HVAC design "
+            ],
+            "Lift": [
+                        "2D documents ",
+                        "Access management ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB "
+            ],
+            "Caisson foundation": [
+                        "2D documents ",
+                        "Building permit ",
+                        "Clash detection ",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Precasting ",
+                        "Structural design "
+            ],
+            "Foundation beam": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Building permit ",
+                        "Clash detection ",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Precasting ",
+                        "Rendering ",
+                        "Structural design "
+            ],
+            "Water collector": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "LCA (Life Cycle Analysis)",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering ",
+                        "Sanitary/HVAC design "
+            ],
+            "Window": [
+                        "2D documents ",
+                        "Access management ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "Heat loss calculation",
+                        "Intrusion and surveillance ",
+                        "LCA (Life Cycle Analysis)",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Rendering "
+            ],
+            "Air handling unit": [
+                        "2D documents ",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Sanitary/HVAC design "
+            ],
+            "Electrical protection equipment": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Curtain wall": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Rendering "
+            ],
+            "Chimney": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering "
+            ],
+            "Linear structural member": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Precasting ",
+                        "Rendering ",
+                        "Structural design "
+            ],
+            "Slab": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Precasting ",
+                        "Rendering ",
+                        "Structural design "
+            ],
+            "Slab-on-grade": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Rendering ",
+                        "Structural design "
+            ],
+            "Roof finishing": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Precasting ",
+                        "Rendering "
+            ],
+            "Ventilation duct": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Sanitary/HVAC design "
+            ],
+            "Fire hydrant": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering "
+            ],
+            "Heat diffusion - radiator": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Sanitary/HVAC design "
+            ],
+            "Heat production - steam": [
+                        "2D documents ",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Sanitary/HVAC design "
+            ],
+            "Zone": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Rendering ",
+                        "Sanitary/HVAC design "
+            ],
+            "Fire hose reel": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering "
+            ],
+            "Lightfixture": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "Intrusion and surveillance ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering "
+            ],
+            "Solar panel": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB "
+            ],
+            "Electrical generator": [
+                        "2D documents ",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Tank": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Sanitary/HVAC design "
+            ],
+            "Door": [
+                        "2D documents ",
+                        "Access management ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "Heat loss calculation",
+                        "Intrusion and surveillance ",
+                        "LCA (Life Cycle Analysis)",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Rendering "
+            ],
+            "Ventilation air terminal": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Sanitary/HVAC design "
+            ],
+            "Sprinkler": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering "
+            ],
+            "Data device": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Fire safety ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering "
+            ],
+            "Damper and register": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Sanitary/HVAC design "
+            ],
+            "Transport equipment (excluding ": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Sanitary/HVAC design "
+            ],
+            "Foundation footing": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering ",
+                        "Structural design "
+            ],
+            "Electrical transformer": [
+                        "2D documents ",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Ceiling finishing": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Precasting ",
+                        "Rendering "
+            ],
+            "Roof": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Precasting ",
+                        "Rendering "
+            ],
+            "Electrical switch": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Handicap accessibility ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Wall finishing": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Precasting ",
+                        "Rendering "
+            ],
+            "Filter": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Sanitary/HVAC design "
+            ],
+            "Sanitaryheating pipe fitting": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Sanitary/HVAC design "
+            ],
+            "Heatcold distribution - convect": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Sanitary/HVAC design "
+            ],
+            "Extinguisher": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering "
+            ],
+            "False ceiling": [
+                        "2D documents ",
+                        "Access management ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Precasting ",
+                        "Rendering "
+            ],
+            "Opening": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "Intrusion and surveillance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering "
+            ],
+            "Sanitary equipment": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Rendering "
+            ],
+            "Stair (concrete)": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Precasting ",
+                        "Rendering ",
+                        "Structural design "
+            ],
+            "Ventilation duct connection": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Sanitary/HVAC design "
+            ],
+            "Electrical outlet": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Pump": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Sanitary/HVAC design "
+            ],
+            "Ventilation silencer": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Sanitary/HVAC design "
+            ],
+            "Electrical panel": [
+                        "2D documents ",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Fire safety ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Electricity storage": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Floor finishing": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Precasting ",
+                        "Rendering "
+            ],
+            "Fire protection cabinet": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering "
+            ],
+            "Audiovisual device": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering "
+            ],
+            "Fan": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Sanitary/HVAC design "
+            ],
+            "Electric appliance": [
+                        "2D documents ",
+                        "Architectural design",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Fire safety ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Rendering "
+            ],
+            "Stair (not concrete)": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Precasting ",
+                        "Rendering "
+            ],
+            "Heatcold diffusion - surface": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Sanitary/HVAC design "
+            ],
+            "Ramp": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Precasting ",
+                        "Rendering ",
+                        "Structural design "
+            ],
+            "Technical floor": [
+                        "2D documents ",
+                        "Access management ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Precasting ",
+                        "Rendering "
+            ],
+            "Wall": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Heat loss calculation",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Precasting ",
+                        "Rendering ",
+                        "Structural design "
+            ],
+            "Column": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Precasting ",
+                        "Rendering ",
+                        "Structural design "
+            ],
+            "Safety lighting": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "Intrusion and surveillance ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Cable tray": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Fire safety ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Heat production - water": [
+                        "2D documents ",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Sanitary/HVAC design "
+            ],
+            "Chiller": [
+                        "2D documents ",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "PEB ",
+                        "Sanitary/HVAC design "
+            ],
+            "Cable tray connection": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Fire safety ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Management panel": [
+                        "2D documents ",
+                        "Clash detection ",
+                        "Electrical design ",
+                        "Maintenance ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Beam": [
+                        "2D documents ",
+                        "Acoustics ",
+                        "Architectural design",
+                        "Building permit ",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Precasting ",
+                        "Rendering ",
+                        "Structural design "
+            ],
+            "Deep foundation": [
+                        "2D documents ",
+                        "Building permit ",
+                        "Clash detection ",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements",
+                        "Precasting ",
+                        "Structural design "
+            ],
+            "Railing": [
+                        "Architectural design",
+                        "Clash detection ",
+                        "Fire safety ",
+                        "Handicap accessibility ",
+                        "LCA (Life Cycle Analysis)",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Terrain": [
+                        "Architectural design",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Provision for void": [
+                        "Clash detection ",
+                        "Optional requirements"
+            ],
+            "Building": [
+                        "Fire safety ",
+                        "Minimum requirements",
+                        "Optional requirements"
+            ],
+            "Site": [
+                        "Minimum requirements"
+            ],
+            "Project": [
+                        "Minimum requirements",
+                        "Optional requirements"
+            ]
+};
+
+        // === IFC UPLOAD STATE ===
+        let ifcData = null; // { fileName, objects: [{name, geom, props, docs}], totalGeom, totalProps, totalDocs, totalScore, density, objectCount, objectKPIs }
+
+        // IFC entity type to BIMids object name mapping
+        const IFC_ENTITY_MAP = {
+            // Spatial
+            'IFCSITE': 'Site', 'IFCBUILDING': 'Building', 'IFCSPACE': 'Space',
+            'IFCZONE': 'Zone', 'IFCBUILDINGSTOREY': 'Technical floor',
+            // Structural
+            'IFCWALL': 'Wall', 'IFCWALLSTANDARDCASE': 'Wall',
+            'IFCCURTAINWALL': 'Curtain wall',
+            'IFCSLAB': 'Slab', 'IFCROOF': 'Roof',
+            'IFCCOLUMN': 'Column', 'IFCBEAM': 'Beam',
+            'IFCMEMBER': 'Linear structural member',
+            'IFCFOOTING': 'Foundation footing', 'IFCPILE': 'Deep foundation',
+            // Openings & access
+            'IFCDOOR': 'Door', 'IFCWINDOW': 'Window',
+            'IFCOPENINGELEMENT': 'Opening', 'IFCVOIDINGFEATURE': 'Provision for void',
+            'IFCRAMP': 'Ramp', 'IFCRAMPFLIGHT': 'Ramp',
+            'IFCSTAIR': 'Stair (concrete)', 'IFCSTAIRFLIGHT': 'Stair (concrete)',
+            'IFCRAILING': 'Railing',
+            // MEP
+            'IFCFLOWSEGMENT': 'Pipe segment', 'IFCPIPESEGMENT': 'Pipe segment',
+            'IFCDUCTSEGMENT': 'Ventilation duct', 'IFCDUCTFITTING': 'Ventilation duct connection',
+            'IFCPIPEFITTING': 'Sanitaryheating pipe fitting',
+            'IFCFLOWCONTROLLER': 'Damper and register',
+            'IFCFLOWTERMINAL': 'Ventilation air terminal',
+            'IFCFLOWMOVINGDEVICE': 'Pump', 'IFCPUMP': 'Pump',
+            'IFCFAN': 'Fan', 'IFCCOMPRESSOR': 'Chiller',
+            'IFCCHILLER': 'Chiller', 'IFCBOILER': 'Heat production - water',
+            'IFCAIRTOAIRHEATRECOVERY': 'Air-to-air exchanger',
+            'IFCUNITARYEQUIPMENT': 'Air handling unit',
+            'IFCSPACEHEATER': 'Heat diffusion - radiator',
+            'IFCTANK': 'Tank', 'IFCFILTER': 'Filter',
+            'IFCDAMPER': 'Damper and register', 'IFCVALVE': 'Actuator',
+            // Electrical
+            'IFCCABLESEGMENT': 'Cable tray', 'IFCCABLECARRIERSEGMENT': 'Cable tray',
+            'IFCCABLECARRIERFITTING': 'Cable tray connection',
+            'IFCLIGHTFIXTURE': 'Lightfixture',
+            'IFCELECTRICAPPLIANCE': 'Electric appliance',
+            'IFCOUTLET': 'Electrical outlet',
+            'IFCSWITCHINGDEVICE': 'Electrical switch',
+            'IFCELECTRICDISTRIBUTIONBOARD': 'Electrical panel',
+            'IFCTRANSFORMER': 'Electrical transformer',
+            'IFCELECTRICGENERATOR': 'Electrical generator',
+            'IFCPROTECTIVEDEVICE': 'Electrical protection equipment',
+            'IFCJUNCTIONBOX': 'Management panel',
+            // Fire
+            'IFCFIRESUPPRESSIONTERMINAL': 'Sprinkler',
+            'IFCALARM': 'Fire protection cabinet',
+            // Furnishing
+            'IFCFURNISHINGELEMENT': 'Furniture', 'IFCFURNITURE': 'Furniture',
+            'IFCSANITARYTERMINAL': 'Sanitary equipment',
+            // Coverings / finishes
+            'IFCCOVERING': 'Wall finishing',
+            // Transport
+            'IFCTRANSPORTELEMENT': 'Lift',
+            // Generic / proxy
+            'IFCBUILDINGELEMENTPROXY': null, // will be counted but unmapped
+            'IFCPLATE': 'Slab', 'IFCFOOTINGTYPE': 'Foundation footing',
+        };
+
+        // === PURE JS IFC/STEP PARSER (no WASM dependency) ===
+        function parseIfcFile(arrayBuffer) {
+            const decoder = new TextDecoder('utf-8');
+            const text = decoder.decode(new Uint8Array(arrayBuffer));
+            const lines = text.split(/\r?\n/);
+
+            // Pass 1: index all entities by #ID and type
+            const entityMap = {}; // id -> { type, args (raw string) }
+            const entitiesByType = {}; // TYPE -> [id, id, ...]
+            const linePattern = /^#(\d+)\s*=\s*([A-Z][A-Z0-9_]*)\s*\((.*)\)\s*;\s*$/;
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                const m = trimmed.match(linePattern);
+                if (!m) continue;
+                const id = parseInt(m[1]);
+                const type = m[2].toUpperCase();
+                const args = m[3];
+                entityMap[id] = { type, args };
+                if (!entitiesByType[type]) entitiesByType[type] = [];
+                entitiesByType[type].push(id);
+            }
+
+            // Helper: extract #refs from a raw argument string
+            function extractRefs(argStr) {
+                const refs = [];
+                const re = /#(\d+)/g;
+                let match;
+                while ((match = re.exec(argStr)) !== null) {
+                    refs.push(parseInt(match[1]));
+                }
+                return refs;
+            }
+
+            // Helper: split top-level STEP arguments (respects nested parens)
+            function splitArgs(argStr) {
+                const result = [];
+                let depth = 0, current = '', inStr = false;
+                for (let i = 0; i < argStr.length; i++) {
+                    const c = argStr[i];
+                    if (c === "'" && !inStr) { inStr = true; current += c; continue; }
+                    if (c === "'" && inStr) { inStr = false; current += c; continue; }
+                    if (inStr) { current += c; continue; }
+                    if (c === '(') { depth++; current += c; continue; }
+                    if (c === ')') { depth--; current += c; continue; }
+                    if (c === ',' && depth === 0) { result.push(current.trim()); current = ''; continue; }
+                    current += c;
+                }
+                if (current.trim()) result.push(current.trim());
+                return result;
+            }
+
+            // Pass 2: Build per-element property-set NAMES and document association NAMES
+            // We track unique names so we count distinct requirements, not instance-level sums
+            const elemPsetNames = {};  // elementId -> Set of pset name strings
+            const elemDocNames = {};   // elementId -> Set of doc reference strings
+
+            const relDefProps = (entitiesByType['IFCRELDEFINESBYPROPERTIES'] || []);
+            for (const relId of relDefProps) {
+                const ent = entityMap[relId];
+                if (!ent) continue;
+                const args = splitArgs(ent.args);
+                const relatedRefs = extractRefs(args[4] || '');
+                // Get the pset definition ref and resolve its name
+                const psetRefs = extractRefs(args[5] || '');
+                let psetName = 'pset_' + relId; // fallback unique key
+                if (psetRefs.length > 0 && entityMap[psetRefs[0]]) {
+                    const psetEnt = entityMap[psetRefs[0]];
+                    const psetArgs = splitArgs(psetEnt.args);
+                    if (psetArgs.length > 2 && psetArgs[2] !== '$') {
+                        psetName = psetArgs[2].replace(/'/g, '');
+                    }
+                }
+                for (const ref of relatedRefs) {
+                    if (!elemPsetNames[ref]) elemPsetNames[ref] = new Set();
+                    elemPsetNames[ref].add(psetName);
+                }
+            }
+
+            const relAssocDoc = (entitiesByType['IFCRELASSOCIATESDOCUMENT'] || []);
+            for (const relId of relAssocDoc) {
+                const ent = entityMap[relId];
+                if (!ent) continue;
+                const args = splitArgs(ent.args);
+                const relatedRefs = extractRefs(args[4] || '');
+                const docRefs = extractRefs(args[5] || '');
+                let docName = 'doc_' + relId;
+                if (docRefs.length > 0 && entityMap[docRefs[0]]) {
+                    const docEnt = entityMap[docRefs[0]];
+                    const docArgs = splitArgs(docEnt.args);
+                    if (docArgs.length > 2 && docArgs[2] !== '$') {
+                        docName = docArgs[2].replace(/'/g, '');
+                    }
+                }
+                for (const ref of relatedRefs) {
+                    if (!elemDocNames[ref]) elemDocNames[ref] = new Set();
+                    elemDocNames[ref].add(docName);
+                }
+            }
+
+            // Pass 3: iterate product entities, classify G/A/D
+            // We track TWO levels:
+            //   Instance-level sums: totalGeom/Props/Docs across all instances (for total score / components)
+            //   Type-level uniques: unique pset names per type (for density / intensity)
+            const objectStats = {};  // bimidsName -> {geomInstances, propInstanceSum, docInstanceSum, psetNames: Set, docNames: Set, count}
+            let unmappedCount = 0;
+            const unmappedTypes = {};
+            const productTypes = Object.keys(IFC_ENTITY_MAP);
+
+            for (const ifcType of productTypes) {
+                const ids = entitiesByType[ifcType] || [];
+                if (ids.length === 0) continue;
+                const bimidsName = IFC_ENTITY_MAP[ifcType];
+
+                for (const id of ids) {
+                    const ent = entityMap[id];
+                    if (!ent) continue;
+
+                    // Geometry detection
+                    let hasGeom = false;
+                    const allRefs = extractRefs(ent.args);
+                    for (const ref of allRefs) {
+                        const refEnt = entityMap[ref];
+                        if (!refEnt) continue;
+                        const rt = refEnt.type;
+                        if (rt === 'IFCPRODUCTDEFINITIONSHAPE' || rt === 'IFCSHAPEREPRESENTATION' ||
+                            rt === 'IFCMATERIALDEFINITIONREPRESENTATION') {
+                            hasGeom = true;
+                            break;
+                        }
+                    }
+                    if (!hasGeom) {
+                        const args = splitArgs(ent.args);
+                        if (args.length > 6 && args[6] && args[6] !== '$') hasGeom = true;
+                    }
+
+                    const elemPsets = elemPsetNames[id];
+                    const elemDocs = elemDocNames[id];
+                    const instancePropCount = elemPsets ? elemPsets.size : 0;
+                    const instanceDocCount = elemDocs ? elemDocs.size : 0;
+
+                    if (bimidsName) {
+                        if (!objectStats[bimidsName]) {
+                            objectStats[bimidsName] = {
+                                geomInstances: 0, propInstanceSum: 0, docInstanceSum: 0,
+                                psetNames: new Set(), docNames: new Set(), count: 0
+                            };
+                        }
+                        objectStats[bimidsName].count++;
+                        if (hasGeom) objectStats[bimidsName].geomInstances++;
+                        objectStats[bimidsName].propInstanceSum += instancePropCount;
+                        objectStats[bimidsName].docInstanceSum += instanceDocCount;
+                        // Type-level unique names (for density)
+                        if (elemPsets) elemPsets.forEach(n => objectStats[bimidsName].psetNames.add(n));
+                        if (elemDocs) elemDocs.forEach(n => objectStats[bimidsName].docNames.add(n));
+                    } else if (bimidsName === null) {
+                        unmappedCount++;
+                        unmappedTypes[ifcType] = (unmappedTypes[ifcType] || 0) + 1;
+                    }
+                }
+            }
+
+            // Build results
+            // Totals use instance-level sums (volume of information in the model)
+            // Density/intensity use type-level unique counts (richness of specification per class)
+            let totalGeom = 0, totalProps = 0, totalDocs = 0;
+            const objectKPIs = [];
+            for (const [name, stats] of Object.entries(objectStats)) {
+                // Instance-level for totals
+                totalGeom += stats.geomInstances;
+                totalProps += stats.propInstanceSum;
+                totalDocs += stats.docInstanceSum;
+                // Type-level for intensity/density
+                const typeG = stats.geomInstances > 0 ? 1 : 0;
+                const typeA = stats.psetNames.size;
+                const typeD = stats.docNames.size;
+                const typeReqs = typeG + typeA + typeD;
+                const instanceTotal = stats.geomInstances + stats.propInstanceSum + stats.docInstanceSum;
+                objectKPIs.push({
+                    name, count: stats.count,
+                    reqs: instanceTotal,
+                    geom: stats.geomInstances, props: stats.propInstanceSum, docs: stats.docInstanceSum,
+                    intensity: typeReqs,
+                    compG: instanceTotal > 0 ? Math.round((stats.geomInstances / instanceTotal) * 1000) / 10 : 0,
+                    compA: instanceTotal > 0 ? Math.round((stats.propInstanceSum / instanceTotal) * 1000) / 10 : 0,
+                });
+            }
+            objectKPIs.sort((a, b) => b.intensity - a.intensity);
+            const totalScore = totalGeom + totalProps + totalDocs;
+            const objectCount = Object.keys(objectStats).length;
+            // Density = average type-level unique reqs per object type
+            const densitySum = objectKPIs.reduce((s, o) => s + o.intensity, 0);
+            const density = objectCount > 0 ? Math.round((densitySum / objectCount) * 100) / 100 : 0;
+
+            // Normalised totals (one instance per type, like BIMids)
+            let normGeom = 0, normProps = 0, normDocs = 0;
+            for (const [name, stats] of Object.entries(objectStats)) {
+                normGeom += stats.geomInstances > 0 ? 1 : 0;
+                normProps += stats.psetNames.size;
+                normDocs += stats.docNames.size;
+            }
+            const normScore = normGeom + normProps + normDocs;
+
+            return {
+                totalGeom, totalProps, totalDocs, totalScore,
+                normGeom, normProps, normDocs, normScore,
+                density, objectCount, objectKPIs,
+                unmappedCount, unmappedTypes,
+                entityTotal: Object.values(objectStats).reduce((s, o) => s + o.count, 0) + unmappedCount
+            };
+        }
+
+        async function handleIfcUpload(file) {
+            const statusEl = document.getElementById('ifc-status');
+            if (statusEl) { statusEl.className = 'ifc-status parsing'; statusEl.textContent = '⏳ Reading IFC file...'; statusEl.style.display = 'block'; }
+
+            try {
+                const buffer = await file.arrayBuffer();
+                if (statusEl) { statusEl.textContent = '⏳ Parsing ' + file.name + ' (' + (buffer.byteLength / 1024 / 1024).toFixed(1) + ' MB)...'; }
+                const result = await parseIfcFile(buffer);
+                ifcData = { fileName: file.name, ...result };
+                if (statusEl) { statusEl.className = 'ifc-status done'; statusEl.textContent = '✓ ' + file.name + ' — ' + ifcData.entityTotal + ' entities, ' + ifcData.objectCount + ' object types'; }
+                render();
+            } catch (err) {
+                console.error('IFC parse error:', err);
+                if (statusEl) { statusEl.className = 'ifc-status error'; statusEl.textContent = '✗ Error: ' + (err.message || err); statusEl.style.display = 'block'; }
+            }
+        }
+
+        function clearIfc() {
+            ifcData = null;
+            const statusEl = document.getElementById('ifc-status');
+            if (statusEl) { statusEl.style.display = 'none'; }
+            render();
+        }
+        let selected = [];
+        let selectionOrder = [];
+        
+        function calculateMetrics() {
+            if (selected.length === 0) return {totalScore:0, totalGeom:0, totalProps:0, totalDocs:0, avgDensity:0, totalObjects:0, phases:[0,0,0,0,0]};
+            const cases = USE_CASES.filter(uc => selected.includes(uc.name));
+            const totalScore = cases.reduce((s, uc) => s + uc.score, 0);
+            const totalGeom = cases.reduce((s, uc) => s + uc.geom, 0);
+            const totalProps = cases.reduce((s, uc) => s + uc.props, 0);
+            const totalDocs = cases.reduce((s, uc) => s + uc.docs, 0);
+            const avgDensity = cases.reduce((s, uc) => s + uc.density, 0) / cases.length;
+            const totalObjects = Math.max(...cases.map(uc => uc.objects));
+            const phases = [0,0,0,0,0];
+            if (totalScore > 0) {
+                cases.forEach(uc => {
+                    if (uc.score > 0) {
+                        const w = uc.score / totalScore;
+                        for (let i=0; i<5; i++) phases[i] += uc['p'+(i+1)] * w;
+                    }
+                });
+            }
+            return {
+                totalScore: Math.round(totalScore*10)/10,
+                totalGeom, totalProps, totalDocs,
+                avgDensity: Math.round(avgDensity*100)/100,
+                totalObjects,
+                phases: phases.map(p => Math.round(p*1000)/10)
+            };
+        }
+        
+        function getObjectKPIs() {
+            if (selected.length === 0) {
+                return [];  // No selection, no objects
+            }
+            
+            // Filter to objects that appear in selected purposes
+            const relevantObjects = OBJECTS.filter(obj => {
+                const objPurposes = OBJECT_PURPOSE_MAP[obj.name] || [];
+                // Check if any selected purpose uses this object
+                return selected.some(selPurpose => objPurposes.includes(selPurpose));
+            });
+            
+            // Sort by intensity and return top 5
+            return relevantObjects.sort((a,b) => b.intensity - a.intensity);
+        }
+        
+        function getTier(m) {
+            if (m >= 40) return {label:'Top Tier'};
+            if (m >= 25) return {label:'High'};
+            if (m >= 15) return {label:'Moderate'};
+            if (m >= 5) return {label:'Low'};
+            return {label:'Minimal'};
+        }
+        
+        function toggle(name) {
+            const idx = selected.indexOf(name);
+            if (idx >= 0) {
+                selected.splice(idx, 1);
+                const o = selectionOrder.indexOf(name);
+                if (o >= 0) selectionOrder.splice(o, 1);
+            } else {
+                selected.push(name);
+                selectionOrder.push(name);
+            }
+            render();
+        }
+        
+        function reset() { selected = []; selectionOrder = []; render(); }
+        function selectMinPlusTop7() {
+            const top7 = Object.entries(INCREMENTAL).sort((a,b) => b[1].marginal - a[1].marginal).slice(0,7).map(([n]) => n);
+            selected = ['Minimum requirements', ...top7];
+            selectionOrder = [...selected];
+            render();
+        }
+        
+        function render() {
+            const m = calculateMetrics();
+            const app = document.getElementById('app');
+            const minReq = USE_CASES.find(uc => uc.name === 'Minimum requirements');
+            const others = USE_CASES.filter(uc => uc.name !== 'Minimum requirements').sort((a,b) => (INCREMENTAL[b.name]?.marginal||0) - (INCREMENTAL[a.name]?.marginal||0));
+            let sidebar = `<h2>📋 Use Cases (${selected.length}/22)</h2><div class="quick-actions"><button class="btn btn-reset" onclick="reset()">Reset</button><button class="btn btn-quick" onclick="selectMinPlusTop7()">Min + Top 7</button></div>`;
+            // IFC Upload area
+            sidebar += `<div class="divider"></div>`;
+            sidebar += `<div class="section-header">IFC Model Upload</div>`;
+            sidebar += `<div id="ifc-status" class="ifc-status" style="display:${ifcData ? 'block' : 'none'}"${ifcData ? ` class="ifc-status done"` : ''}>${ifcData ? '✓ ' + ifcData.fileName + ' — ' + ifcData.entityTotal + ' entities, ' + ifcData.objectCount + ' object types' : ''}</div>`;
+            sidebar += `<div class="ifc-upload-area ${ifcData ? 'loaded' : ''}" id="ifc-drop-zone" onclick="document.getElementById('ifc-file-input').click()">`;
+            sidebar += `<div class="ifc-upload-icon">${ifcData ? '📦' : '📁'}</div>`;
+            sidebar += `<div class="ifc-upload-text">${ifcData ? ifcData.fileName : 'Drop .ifc file or click to browse'}</div>`;
+            if (ifcData) sidebar += `<button class="ifc-clear-btn" onclick="event.stopPropagation(); clearIfc();">Remove</button>`;
+            sidebar += `</div>`;
+            sidebar += `<input type="file" id="ifc-file-input" accept=".ifc" style="display:none">`;
+            sidebar += `<div class="divider"></div>`;
+            const minS = selected.includes(minReq.name);
+            const minO = selectionOrder.indexOf(minReq.name)+1;
+            sidebar += `<div class="use-case-card baseline ${minS?'selected':''}" onclick="toggle('${minReq.name}')"><div class="card-header"><input type="checkbox" ${minS?'checked':''}><div class="card-name">${minO>0?`#${minO} `:''}${minReq.name}</div><div class="card-score">${minReq.score}</div></div></div><div class="divider"></div>`;
+            let lastT = null;
+            others.forEach(uc => {
+                const inc = INCREMENTAL[uc.name]||{marginal:0,unique:0};
+                const t = getTier(inc.marginal);
+                const isSel = selected.includes(uc.name);
+                const ord = selectionOrder.indexOf(uc.name)+1;
+                if (t.label !== lastT) {
+                    sidebar += `<div class="section-header">${t.label}</div>`;
+                    lastT = t.label;
+                }
+                sidebar += `<div class="use-case-card ${isSel?'selected':''}" onclick="toggle('${uc.name.replace(/'/g,"\\'")}')"><div class="card-header"><input type="checkbox" ${isSel?'checked':''}><div class="card-name">${ord>0?`#${ord} `:''}${uc.name}</div><div class="card-score">${uc.score}</div></div>${!isSel?`<div class="card-meta">+${inc.marginal} | ${inc.unique}% unique</div>`:''}</div>`;
+            });
+            let content = '';
+            if (selected.length === 0 && !ifcData) {
+                content = '<div class="empty-state">Select use cases or upload an IFC file to begin</div>';
+            } else {
+                // === BIMids metrics (if any selected) ===
+                if (selected.length > 0) {
+                content = `<div class="metrics"><div class="metric"><div class="metric-label">Total Information Score</div><div class="metric-value">${m.totalScore.toLocaleString()}</div><div class="metric-sub">${selected.length} cases</div></div><div class="metric"><div class="metric-label">Information Density</div><div class="metric-value">${m.avgDensity}</div><div class="metric-sub">reqs/object</div></div><div class="metric"><div class="metric-label">Total Components</div><div class="metric-value">${(m.totalGeom+m.totalProps+m.totalDocs).toLocaleString()}</div><div class="metric-sub">G:${m.totalGeom} A:${m.totalProps} D:${m.totalDocs}</div></div><div class="metric"><div class="metric-label">Object Coverage</div><div class="metric-value">${m.totalObjects}</div><div class="metric-sub">objects</div></div></div>`;
+                }
+
+                // === COMPARISON VIEW (BIMids + IFC side by side) ===
+                // BIMids already counts 1 instance per type; IFC uses normScore for the same basis
+                // G/A/D compared as percentages only
+                if (ifcData && selected.length > 0) {
+                    const bTotal = m.totalGeom + m.totalProps + m.totalDocs;
+                    const iNorm = ifcData.normScore;
+                    const maxScore = Math.max(bTotal, iNorm, 1);
+                    const bGpct = bTotal > 0 ? (m.totalGeom/bTotal*100).toFixed(1) : '0.0';
+                    const bApct = bTotal > 0 ? (m.totalProps/bTotal*100).toFixed(1) : '0.0';
+                    const bDpct = bTotal > 0 ? (m.totalDocs/bTotal*100).toFixed(1) : '0.0';
+                    const iGpct = iNorm > 0 ? (ifcData.normGeom/iNorm*100).toFixed(1) : '0.0';
+                    const iApct = iNorm > 0 ? (ifcData.normProps/iNorm*100).toFixed(1) : '0.0';
+                    const iDpct = iNorm > 0 ? (ifcData.normDocs/iNorm*100).toFixed(1) : '0.0';
+
+                    content += `<div style="margin-bottom:20px;"><div class="chart-title" style="font-size:18px;">🔄 BIMids vs IFC Comparison</div></div>`;
+                    content += `<div class="comparison-grid">`;
+                    // BIMids panel
+                    content += `<div class="comparison-panel bimids-panel">`;
+                    content += `<div class="comparison-panel-title"><span class="dot dot-bimids"></span> BIMids Selection (${selected.length} cases)</div>`;
+                    content += `<div class="comp-metric"><span class="comp-metric-label">Score</span><span class="comp-metric-value">${bTotal.toLocaleString()}</span></div>`;
+                    content += `<div class="comp-bar"><div class="comp-bar-fill" style="width:${(bTotal/maxScore*100)}%; background:#667eea;"></div></div>`;
+                    content += `<div class="comp-metric"><span class="comp-metric-label">G / A / D split</span><span class="comp-metric-value">${bGpct}% / ${bApct}% / ${bDpct}%</span></div>`;
+                    content += `<div class="comp-metric"><span class="comp-metric-label">Object Types</span><span class="comp-metric-value">${m.totalObjects}</span></div>`;
+                    content += `<div class="comp-metric"><span class="comp-metric-label">Density</span><span class="comp-metric-value">${m.avgDensity} reqs/type</span></div>`;
+                    content += `</div>`;
+                    // IFC panel
+                    content += `<div class="comparison-panel ifc-panel">`;
+                    content += `<div class="comparison-panel-title"><span class="dot dot-ifc"></span> IFC: ${ifcData.fileName}</div>`;
+                    content += `<div class="comp-metric"><span class="comp-metric-label">Score</span><span class="comp-metric-value">${iNorm.toLocaleString()}</span></div>`;
+                    content += `<div class="comp-bar"><div class="comp-bar-fill" style="width:${(iNorm/maxScore*100)}%; background:#27ae60;"></div></div>`;
+                    content += `<div class="comp-metric"><span class="comp-metric-label">G / A / D split</span><span class="comp-metric-value">${iGpct}% / ${iApct}% / ${iDpct}%</span></div>`;
+                    content += `<div class="comp-metric"><span class="comp-metric-label">Object Types</span><span class="comp-metric-value">${ifcData.objectCount}</span></div>`;
+                    content += `<div class="comp-metric"><span class="comp-metric-label">Density</span><span class="comp-metric-value">${ifcData.density} reqs/type</span></div>`;
+                    if (ifcData.unmappedCount > 0) {
+                        content += `<div class="comp-metric"><span class="comp-metric-label" style="color:#e67e22;">Unmapped</span><span class="comp-metric-value" style="color:#e67e22;">${ifcData.unmappedCount} entities</span></div>`;
+                    }
+                    content += `</div>`;
+                    content += `</div>`; // end comparison-grid
+
+                    // Chart: G/A/D percentage comparison + phase chart
+                    content += `<div class="charts"><div class="chart-box"><div class="chart-title">G / A / D Split (%)</div><div class="chart-canvas"><canvas id="compCompareChart"></canvas></div></div><div class="chart-box"><div class="chart-title">Phase Allocation (BIMids only)</div><div class="chart-canvas"><canvas id="phaseChart"></canvas></div></div></div>`;
+                }
+                // === IFC-ONLY VIEW (no BIMids selected) ===
+                else if (ifcData && selected.length === 0) {
+                    const iTotal = ifcData.totalScore;
+                    const iGpct = iTotal > 0 ? (ifcData.totalGeom/iTotal*100).toFixed(1) : '0.0';
+                    const iApct = iTotal > 0 ? (ifcData.totalProps/iTotal*100).toFixed(1) : '0.0';
+                    const iDpct = iTotal > 0 ? (ifcData.totalDocs/iTotal*100).toFixed(1) : '0.0';
+                    content = `<div class="metrics"><div class="metric" style="background:linear-gradient(135deg,#27ae60,#2ecc71);"><div class="metric-label">Total Information Score</div><div class="metric-value">${iTotal.toLocaleString()}</div><div class="metric-sub">${ifcData.fileName}</div></div><div class="metric" style="background:linear-gradient(135deg,#27ae60,#2ecc71);"><div class="metric-label">Information Density</div><div class="metric-value">${ifcData.density}</div><div class="metric-sub">unique reqs/type</div></div><div class="metric" style="background:linear-gradient(135deg,#27ae60,#2ecc71);"><div class="metric-label">Total Components</div><div class="metric-value">${iTotal.toLocaleString()}</div><div class="metric-sub">G:${ifcData.totalGeom.toLocaleString()} A:${ifcData.totalProps.toLocaleString()} D:${ifcData.totalDocs.toLocaleString()}</div></div><div class="metric" style="background:linear-gradient(135deg,#27ae60,#2ecc71);"><div class="metric-label">Object Types</div><div class="metric-value">${ifcData.objectCount}</div><div class="metric-sub">${ifcData.entityTotal} entities total</div></div></div>`;
+                    content += `<div class="charts"><div class="chart-box"><div class="chart-title">IFC G / A / D Split (%)</div><div class="chart-canvas"><canvas id="ifcOnlyCompChart"></canvas></div></div><div class="chart-box"><div class="chart-title">Entity Counts by Object Type (Top 15)</div><div class="chart-canvas"><canvas id="ifcObjectBarChart"></canvas></div></div></div>`;
+                }
+                // === BIMids-ONLY VIEW (original) ===
+                else if (selected.length > 0 && !ifcData) {
+                content += `<div class="charts"><div class="chart-box"><div class="chart-title">Component Distribution Percentages</div><div class="chart-canvas"><canvas id="compChart"></canvas></div></div><div class="chart-box"><div class="chart-title">Phase Allocation Ratios</div><div class="chart-canvas"><canvas id="phaseChart"></canvas></div></div></div>`;
+                }
+
+                // Recommendations table
+                if (selected.length > 0) {
+                const uns = USE_CASES.filter(uc => !selected.includes(uc.name));
+
+                if (ifcData) {
+                    // === IFC-AWARE USE CASE MATCHING ===
+                    // Two dimensions:
+                    //   1. Type coverage: does this UC add new IFC object types?
+                    //   2. Object improvement: for "Under" objects, does this UC improve intensity?
+                    const ifcObjectNames = new Set(ifcData.objectKPIs.map(o => o.name));
+                    const ifcByName = {}; // name -> ifcData KPI
+                    ifcData.objectKPIs.forEach(o => { ifcByName[o.name] = o; });
+                    const ifcNormTotal = ifcData.normScore || 1;
+                    const ifcGpct = ifcData.normGeom / ifcNormTotal;
+                    const ifcApct = ifcData.normProps / ifcNormTotal;
+                    const ifcDpct = ifcData.normDocs / ifcNormTotal;
+
+                    // Which IFC types are already covered by the current selection?
+                    const coveredBySelection = new Set();
+                    for (const [objName, purposes] of Object.entries(OBJECT_PURPOSE_MAP)) {
+                        if (ifcObjectNames.has(objName) && purposes.some(p => selected.includes(p))) {
+                            coveredBySelection.add(objName);
+                        }
+                    }
+                    const uncoveredIfc = [...ifcObjectNames].filter(o => !coveredBySelection.has(o));
+                    const allTypesCovered = uncoveredIfc.length === 0;
+
+                    // For covered objects, compute current IDS intensity to find "Under" objects
+                    const currentIdsIntensity = {}; // objName -> BIMids intensity from current selection
+                    const objK = getObjectKPIs();
+                    objK.forEach(o => { currentIdsIntensity[o.name] = o.intensity; });
+
+                    // Objects that are in both IFC and current IDS but where IFC > IDS (under-specified)
+                    const underObjects = [...coveredBySelection].filter(objName => {
+                        const ifcInt = ifcByName[objName]?.intensity || 0;
+                        const idsInt = currentIdsIntensity[objName] || 0;
+                        return ifcInt - idsInt > 1; // IFC has more than IDS asks for
+                    });
+
+                    const allObjectsOk = allTypesCovered && underObjects.length === 0;
+
+                    const matches = uns.map(uc => {
+                        const ucObjects = new Set();
+                        for (const [objName, purposes] of Object.entries(OBJECT_PURPOSE_MAP)) {
+                            if (purposes.includes(uc.name)) ucObjects.add(objName);
+                        }
+                        // NEW IFC types this UC would add
+                        const coversIfcTypes = [...ifcObjectNames].filter(o => ucObjects.has(o));
+                        const newIfcTypes = coversIfcTypes.filter(o => !coveredBySelection.has(o));
+
+                        // How many "Under" objects would this UC improve?
+                        // An Under object improves if this UC includes it (adding more purposes increases BIMids intensity)
+                        const improvesUnder = underObjects.filter(objName => ucObjects.has(objName));
+
+                        // G/A/D similarity (cosine)
+                        const ucTotal = uc.score || 1;
+                        const ucGpct = uc.geom / ucTotal;
+                        const ucApct = uc.props / ucTotal;
+                        const ucDpct = uc.docs / ucTotal;
+                        const dot = ucGpct*ifcGpct + ucApct*ifcApct + ucDpct*ifcDpct;
+                        const magUC = Math.sqrt(ucGpct**2 + ucApct**2 + ucDpct**2) || 1;
+                        const magIFC = Math.sqrt(ifcGpct**2 + ifcApct**2 + ifcDpct**2) || 1;
+                        const gadSim = Math.round(dot / (magUC * magIFC) * 100);
+
+                        return {
+                            name: uc.name, score: uc.score,
+                            coversCount: coversIfcTypes.length,
+                            newCount: newIfcTypes.length,
+                            newTypes: newIfcTypes,
+                            improvesCount: improvesUnder.length,
+                            improvesNames: improvesUnder,
+                            ucObjCount: ucObjects.size,
+                            gadSim
+                        };
+                    }).sort((a, b) => {
+                        // Priority 1: UCs that add new uncovered IFC types
+                        if (!allTypesCovered && (b.newCount !== a.newCount)) return b.newCount - a.newCount;
+                        // Priority 2: UCs that improve Under objects
+                        if (underObjects.length > 0 && (b.improvesCount !== a.improvesCount)) return b.improvesCount - a.improvesCount;
+                        // Priority 3: G/A/D match
+                        return b.gadSim - a.gadSim;
+                    });
+
+                    // Status summary
+                    let statusParts = [];
+                    if (!allTypesCovered) {
+                        statusParts.push('<span style="color:#e65100;font-weight:600;">Types: ' + coveredBySelection.size + '/' + ifcObjectNames.size + ' covered — remaining: ' + uncoveredIfc.join(', ') + '</span>');
+                    } else {
+                        statusParts.push('<span style="color:#2e7d32;font-weight:600;">✓ All ' + ifcObjectNames.size + ' IFC types covered</span>');
+                    }
+                    if (underObjects.length > 0) {
+                        statusParts.push('<span style="color:#e65100;font-weight:600;">Objects: ' + underObjects.length + ' under-specified (' + underObjects.join(', ') + ')</span>');
+                    } else if (allTypesCovered) {
+                        statusParts.push('<span style="color:#2e7d32;font-weight:600;">✓ All objects adequately specified</span>');
+                    }
+
+                    content += '<div style="margin-top:30px;"><div class="chart-title">Use Case Relevance to IFC Model</div>';
+                    content += '<div style="font-size:11px;margin-bottom:10px;">' + statusParts.join(' &nbsp;|&nbsp; ') + '</div>';
+                    content += '<table class="rec-table"><thead><tr>';
+                    content += '<th>Use Case</th>';
+                    if (!allTypesCovered) {
+                        content += '<th style="text-align:center;">New Types<br><span style="font-size:10px;color:#999;">IFC types added</span></th>';
+                    }
+                    if (underObjects.length > 0) {
+                        content += '<th style="text-align:center;">Improves<br><span style="font-size:10px;color:#999;">under-specified objects</span></th>';
+                    }
+                    content += '<th style="text-align:center;">IFC Types<br><span style="font-size:10px;color:#999;">covered by UC</span></th>';
+                    content += '<th style="text-align:center;">G/A/D Match<br><span style="font-size:10px;color:#999;">profile similarity</span></th>';
+                    content += '</tr></thead><tbody>';
+                    matches.forEach(r => {
+                        const hasAction = r.newCount > 0 || r.improvesCount > 0;
+                        const rowBg = hasAction ? '#e8f5e9' : '#fff';
+                        const simBar = `<div style="background:#ecf0f1;border-radius:3px;height:6px;margin-top:3px;"><div style="background:#9b59b6;height:6px;border-radius:3px;width:${r.gadSim}%;"></div></div>`;
+                        content += `<tr onclick="toggle('${r.name.replace(/'/g,"\\'")}')" style="background:${rowBg};">`;
+                        content += `<td style="font-weight:600;">${r.name}</td>`;
+                        if (!allTypesCovered) {
+                            const newLabel = r.newCount > 0 ? '<span style="color:#2e7d32;font-weight:700;">+' + r.newCount + '</span><br><span style="font-size:9px;color:#666;">' + r.newTypes.join(', ') + '</span>' : '<span style="color:#bdc3c7;">—</span>';
+                            content += `<td style="text-align:center;">${newLabel}</td>`;
+                        }
+                        if (underObjects.length > 0) {
+                            const impLabel = r.improvesCount > 0 ? '<span style="color:#1565c0;font-weight:700;">↑ ' + r.improvesCount + '</span><br><span style="font-size:9px;color:#666;">' + r.improvesNames.join(', ') + '</span>' : '<span style="color:#bdc3c7;">—</span>';
+                            content += `<td style="text-align:center;">${impLabel}</td>`;
+                        }
+                        content += `<td style="text-align:center;">${r.coversCount} / ${ifcObjectNames.size}</td>`;
+                        content += `<td style="text-align:center;">${r.gadSim}%${simBar}</td>`;
+                        content += '</tr>';
+                    });
+                    content += '</tbody></table></div>';
+                } else {
+                    // Original Top Additions (no IFC loaded)
+                    const recs = uns.map(uc => ({name:uc.name, marginal:INCREMENTAL[uc.name]?.marginal||0, unique:INCREMENTAL[uc.name]?.unique||0, tier:getTier(INCREMENTAL[uc.name]?.marginal||0)})).sort((a,b) => b.marginal-a.marginal);
+                    content += '<div style="margin-top:30px;"><div class="chart-title">Top Additions</div><table class="rec-table"><thead><tr><th>Use Case</th><th>Marginal</th><th>Uniqueness</th><th>Tier</th></tr></thead><tbody>';
+                    recs.slice(0,10).forEach(r => {
+                        content += `<tr onclick="toggle('${r.name.replace(/'/g,"\\'")}')"><td>${r.name}</td><td style="font-weight:700;color:#5568d3;">+${r.marginal}</td><td>${r.unique}%</td><td><span class="badge badge-${r.tier.label.toLowerCase().replace(' ','-')}">${r.tier.label}</span></td></tr>`;
+                    });
+                    content += '</tbody></table></div>';
+                }
+                }
+
+                // IFC Object-level analysis with coverage tracking (shown above BIMids table when IFC loaded)
+                if (ifcData && ifcData.objectKPIs.length > 0) {
+                    // Determine which IFC objects are covered by selected use cases
+                    const coveredSet = new Set();
+                    if (selected.length > 0) {
+                        for (const [objName, purposes] of Object.entries(OBJECT_PURPOSE_MAP)) {
+                            if (purposes.some(p => selected.includes(p))) {
+                                coveredSet.add(objName);
+                            }
+                        }
+                    }
+                    const covCount = ifcData.objectKPIs.filter(o => coveredSet.has(o.name)).length;
+                    const totalIfcTypes = ifcData.objectKPIs.length;
+                    const covLabel = selected.length === 0
+                        ? '— select use cases to track coverage'
+                        : covCount === totalIfcTypes
+                            ? '<span style="color:#2e7d32;">✓ All covered</span>'
+                            : '<span style="color:#e65100;">' + covCount + ' / ' + totalIfcTypes + ' covered</span>';
+
+                    content += '<div style="margin-top:30px;"><div class="chart-title" style="color:#27ae60;">IFC Object-Level Analysis (' + totalIfcTypes + ' object types) ' + covLabel + '</div>';
+                    content += '<table class="rec-table"><thead><tr>';
+                    if (selected.length > 0) content += '<th style="text-align:center;width:40px;">IDS</th>';
+                    content += '<th>Object Type</th>';
+                    content += '<th style="text-align:center;">Instances</th>';
+                    content += '<th style="text-align:center;">Total Reqs</th>';
+                    content += '<th style="text-align:center;">Intensity<br><span style="font-size:10px;color:#999;">(unique reqs)</span></th>';
+                    content += '<th style="text-align:center;">G %</th>';
+                    content += '<th style="text-align:center;">A %</th>';
+                    content += '</tr></thead><tbody>';
+                    ifcData.objectKPIs.forEach(o => {
+                        const isCovered = coveredSet.has(o.name);
+                        const rowStyle = isCovered && selected.length > 0
+                            ? 'opacity:0.4;'
+                            : '';
+                        const intBg = o.intensity > 10 ? '#e8f5e9' : o.intensity > 5 ? '#f1f8e9' : '#f8f9fa';
+                        const intColor = o.intensity > 10 ? '#1b5e20' : o.intensity > 5 ? '#33691e' : '#555';
+                        content += `<tr style="${rowStyle}">`;
+                        if (selected.length > 0) {
+                            content += `<td style="text-align:center;font-size:14px;">${isCovered ? '✓' : '✗'}</td>`;
+                        }
+                        content += `<td style="font-weight:600;">${o.name}</td>`;
+                        content += `<td style="text-align:center;">${o.count}</td>`;
+                        content += `<td style="text-align:center;font-weight:600;">${o.reqs}</td>`;
+                        content += `<td style="text-align:center;background:${intBg};font-weight:700;color:${intColor};">${o.intensity.toFixed(1)}</td>`;
+                        content += `<td style="text-align:center;">${o.compG.toFixed(1)}%</td>`;
+                        content += `<td style="text-align:center;">${o.compA.toFixed(1)}%</td>`;
+                        content += '</tr>';
+                    });
+                    content += '</tbody></table></div>';
+
+                    if (ifcData.unmappedCount > 0) {
+                        const topUnmapped = Object.entries(ifcData.unmappedTypes).sort((a,b) => b[1]-a[1]).slice(0,10);
+                        content += '<div style="margin-top:15px;padding:12px;background:#fff8e1;border-radius:8px;font-size:12px;">';
+                        content += '<strong style="color:#e65100;">⚠ ' + ifcData.unmappedCount + ' entities not mapped to BIMids objects:</strong> ';
+                        content += topUnmapped.map(([t,c]) => t + ' (' + c + ')').join(', ');
+                        if (Object.keys(ifcData.unmappedTypes).length > 10) content += ', ...';
+                        content += '</div>';
+                    }
+                }
+
+                // Object-level comparison or BIMids-only table
+                if (selected.length > 0) {
+                const objK = getObjectKPIs();
+
+                if (ifcData && objK.length > 0) {
+                    // === MERGED IFC vs IDS COMPARISON TABLE ===
+                    // For each IFC object type, show IFC data alongside IDS requirements
+                    const idsMap = {};
+                    objK.forEach(o => { idsMap[o.name] = o; });
+
+                    // Build unified list: all IFC objects + any IDS-only objects
+                    const allObjects = [];
+                    const seen = new Set();
+                    // IFC objects first
+                    ifcData.objectKPIs.forEach(o => {
+                        seen.add(o.name);
+                        allObjects.push({
+                            name: o.name,
+                            inIfc: true, inIds: !!idsMap[o.name],
+                            ifcIntensity: o.intensity, ifcG: o.compG, ifcA: o.compA, ifcCount: o.count,
+                            idsIntensity: idsMap[o.name]?.intensity || 0,
+                            idsG: idsMap[o.name]?.compG || 0, idsA: idsMap[o.name]?.compA || 0,
+                            idsPurposes: idsMap[o.name]?.purposeCount || 0
+                        });
+                    });
+                    // IDS-only objects (not in IFC)
+                    objK.forEach(o => {
+                        if (!seen.has(o.name)) {
+                            allObjects.push({
+                                name: o.name,
+                                inIfc: false, inIds: true,
+                                ifcIntensity: 0, ifcG: 0, ifcA: 0, ifcCount: 0,
+                                idsIntensity: o.intensity,
+                                idsG: o.compG, idsA: o.compA,
+                                idsPurposes: o.purposeCount
+                            });
+                        }
+                    });
+
+                    // Sort: IFC objects with IDS match first (by gap), then IFC-only, then IDS-only
+                    allObjects.sort((a, b) => {
+                        const aScore = (a.inIfc && a.inIds) ? 2 : a.inIfc ? 1 : 0;
+                        const bScore = (b.inIfc && b.inIds) ? 2 : b.inIfc ? 1 : 0;
+                        if (bScore !== aScore) return bScore - aScore;
+                        return b.ifcIntensity - a.ifcIntensity;
+                    });
+
+                    content += '<div style="margin-top:30px;"><div class="chart-title">IFC vs IDS Object Comparison</div>';
+                    content += '<div style="font-size:11px;color:#7f8c8d;margin-bottom:10px;">Per-object comparison of IFC model data vs selected IDS requirements</div>';
+                    content += '<table class="rec-table"><thead><tr>';
+                    content += '<th>Object</th>';
+                    content += '<th style="text-align:center;">Status</th>';
+                    content += '<th style="text-align:center;">IFC<br><span style="font-size:10px;color:#27ae60;">intensity</span></th>';
+                    content += '<th style="text-align:center;">IDS<br><span style="font-size:10px;color:#667eea;">intensity</span></th>';
+                    content += '<th style="text-align:center;">Gap</th>';
+                    content += '<th style="text-align:center;">IFC G/A<br><span style="font-size:10px;color:#27ae60;">%</span></th>';
+                    content += '<th style="text-align:center;">IDS G/A<br><span style="font-size:10px;color:#667eea;">%</span></th>';
+                    content += '</tr></thead><tbody>';
+
+                    allObjects.forEach(o => {
+                        let badge, badgeCls, rowBg;
+                        if (!o.inIfc) {
+                            badge = 'Not in IFC'; badgeCls = 'badge-minimal'; rowBg = '#f8f8f8';
+                        } else if (!o.inIds) {
+                            badge = 'No IDS'; badgeCls = 'badge-low'; rowBg = '#fff8e1';
+                        } else {
+                            const gap = o.ifcIntensity - o.idsIntensity;
+                            if (gap >= 2) { badge = 'Over'; badgeCls = 'badge-high'; rowBg = '#e3f2fd'; }
+                            else if (gap >= -1) { badge = 'Match'; badgeCls = 'badge-top-tier'; rowBg = '#e8f5e9'; }
+                            else { badge = 'Under'; badgeCls = 'badge-moderate'; rowBg = '#fff3e0'; }
+                        }
+
+                        const gapVal = o.inIfc && o.inIds ? o.ifcIntensity - o.idsIntensity : null;
+                        const gapStr = gapVal !== null
+                            ? (gapVal > 0 ? '<span style="color:#2e7d32;">+' + gapVal.toFixed(1) + '</span>' : gapVal < 0 ? '<span style="color:#e65100;">' + gapVal.toFixed(1) + '</span>' : '<span style="color:#7f8c8d;">0</span>')
+                            : '<span style="color:#bdc3c7;">—</span>';
+
+                        content += `<tr style="background:${rowBg};">`;
+                        content += `<td style="font-weight:600;">${o.name}${o.inIfc ? '<br><span style=\"font-size:10px;color:#999;\">' + o.ifcCount + ' instances</span>' : ''}</td>`;
+                        content += `<td style="text-align:center;"><span class="badge ${badgeCls}">${badge}</span></td>`;
+                        content += `<td style="text-align:center;font-weight:700;color:#27ae60;">${o.inIfc ? o.ifcIntensity.toFixed(1) : '—'}</td>`;
+                        content += `<td style="text-align:center;font-weight:700;color:#667eea;">${o.inIds ? o.idsIntensity.toFixed(1) : '—'}</td>`;
+                        content += `<td style="text-align:center;font-weight:700;">${gapStr}</td>`;
+                        content += `<td style="text-align:center;">${o.inIfc ? o.ifcG.toFixed(0) + '% / ' + o.ifcA.toFixed(0) + '%' : '—'}</td>`;
+                        content += `<td style="text-align:center;">${o.inIds ? o.idsG.toFixed(0) + '% / ' + o.idsA.toFixed(0) + '%' : '—'}</td>`;
+                        content += '</tr>';
+                    });
+                    content += '</tbody></table></div>';
+
+                } else if (objK.length > 0) {
+                    // BIMids-only table (no IFC loaded)
+                    content += '<div style="margin-top:30px;"><div class="chart-title">BIMids Object-Level Analysis (' + objK.length + ' objects in selected purposes)</div>';
+                    content += '<table class="rec-table"><thead><tr>';
+                    content += '<th>Object</th>';
+                    content += '<th style="text-align:center;">Purpose Count<br><span style="font-size:10px;color:#999;">(Nₒ)</span></th>';
+                    content += '<th style="text-align:center;">Cumulative Reqs<br><span style="font-size:10px;color:#999;">(Rₒ)</span></th>';
+                    content += '<th style="text-align:center;">Intensity<br><span style="font-size:10px;color:#999;">(ρₒ)</span></th>';
+                    content += '<th style="text-align:center;">Component %<br><span style="font-size:10px;color:#999;">(G / A)</span></th>';
+                    content += '<th style="text-align:center;">Phase Coverage<br><span style="font-size:10px;color:#999;">(Φₒ)</span></th>';
+                    content += '</tr></thead><tbody>';
+                    objK.forEach(o => {
+                        const intBg = o.intensity > 10 ? '#ffebee' : o.intensity > 8 ? '#fff3e0' : '#f8f9fa';
+                        const intColor = o.intensity > 10 ? '#c62828' : o.intensity > 8 ? '#e65100' : '#555';
+                        content += `<tr><td style="font-weight:600;">${o.name}</td>`;
+                        content += `<td style="text-align:center;">${o.purposeCount}</td>`;
+                        content += `<td style="text-align:center;font-weight:600;">${o.cumulativeReqs}</td>`;
+                        content += `<td style="text-align:center;background:${intBg};font-weight:700;font-size:14px;color:${intColor};">${o.intensity.toFixed(1)}</td>`;
+                        content += `<td style="text-align:center;">${o.compG.toFixed(0)}% / ${o.compA.toFixed(0)}%</td>`;
+                        content += `<td style="text-align:center;">${o.phaseCoverage}/5</td>`;
+                        content += '</tr>';
+                    });
+                    content += '</tbody></table></div>';
+                }
+                }
+            }
+            app.innerHTML = `<div class="container"><div class="header"><h1>BIMids Selection Dashboard</h1><p>Interactive LOIN Analysis - Build your configuration, upload IFC models, and compare</p></div><div class="main"><div class="sidebar">${sidebar}</div><div class="content">${content}</div></div></div>`;
+
+            // Attach IFC file handlers after DOM update
+            setTimeout(() => {
+                const dropZone = document.getElementById('ifc-drop-zone');
+                const fileInput = document.getElementById('ifc-file-input');
+                if (dropZone) {
+                    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+                    dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
+                    dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); if (e.dataTransfer.files[0]) handleIfcUpload(e.dataTransfer.files[0]); });
+                }
+                if (fileInput) {
+                    fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleIfcUpload(e.target.files[0]); });
+                }
+            }, 10);
+
+            // Chart rendering
+            setTimeout(() => {
+                // BIMids-only doughnut
+                const cc = document.getElementById('compChart');
+                if (cc && selected.length > 0) {
+                    if (window.cChart) window.cChart.destroy();
+                    window.cChart = new Chart(cc, {
+                        type:'doughnut', 
+                        data:{
+                            labels:['Geometrical','Alphanumerical','Documentation'], 
+                            datasets:[{
+                                data:[m.totalGeom,m.totalProps,m.totalDocs], 
+                                backgroundColor:['#42a5f5','#66bb6a','#ffa726']
+                            }]
+                        }, 
+                        options:{
+                            responsive:true, maintainAspectRatio:false, 
+                            plugins:{
+                                legend:{ position:'bottom', labels:{ generateLabels: function(chart) { const data = chart.data; const total = data.datasets[0].data.reduce((a,b) => a+b, 0); return data.labels.map((label, i) => { const value = data.datasets[0].data[i]; const pct = total>0?((value/total)*100).toFixed(1):'0'; return { text: label + ': ' + value + ' (' + pct + '%)', fillStyle: data.datasets[0].backgroundColor[i], hidden: false, index: i }; }); } } },
+                                tooltip:{ callbacks:{ label: function(context) { const value = context.parsed; const total = context.dataset.data.reduce((a,b) => a+b, 0); const pct = total>0?((value/total)*100).toFixed(1):'0'; return context.label + ': ' + value + ' (' + pct + '%)'; } } }
+                            }
+                        }
+                    });
+                }
+
+                // Comparison doughnut (BIMids vs IFC side by side in one chart)
+                const compCompare = document.getElementById('compCompareChart');
+                if (compCompare && ifcData && selected.length > 0) {
+                    if (window.ccChart) window.ccChart.destroy();
+                    const bT = m.totalGeom + m.totalProps + m.totalDocs;
+                    const iN = ifcData.normScore;
+                    window.ccChart = new Chart(compCompare, {
+                        type:'bar',
+                        data:{
+                            labels:['Geometrical (G)', 'Alphanumerical (A)', 'Documentation (D)'],
+                            datasets:[
+                                { label:'BIMids', data:[bT>0?m.totalGeom/bT*100:0, bT>0?m.totalProps/bT*100:0, bT>0?m.totalDocs/bT*100:0], backgroundColor:'rgba(102,126,234,0.7)', borderColor:'#667eea', borderWidth:1 },
+                                { label:'IFC', data:[iN>0?ifcData.normGeom/iN*100:0, iN>0?ifcData.normProps/iN*100:0, iN>0?ifcData.normDocs/iN*100:0], backgroundColor:'rgba(39,174,96,0.7)', borderColor:'#27ae60', borderWidth:1 }
+                            ]
+                        },
+                        options:{
+                            responsive:true, maintainAspectRatio:false,
+                            scales:{ y:{beginAtZero:true, max:100, title:{display:true, text:'%'}, ticks:{callback:(v) => v + '%'}} },
+                            plugins:{ legend:{position:'bottom'}, tooltip:{callbacks:{label: function(ctx){ return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(1) + '%'; }}} }
+                        }
+                    });
+                }
+
+                // IFC-only doughnut
+                const ifcOnlyComp = document.getElementById('ifcOnlyCompChart');
+                if (ifcOnlyComp && ifcData) {
+                    if (window.ifcOChart) window.ifcOChart.destroy();
+                    window.ifcOChart = new Chart(ifcOnlyComp, {
+                        type:'doughnut',
+                        data:{
+                            labels:['Geometrical','Alphanumerical','Documentation'],
+                            datasets:[{ data:[ifcData.totalGeom, ifcData.totalProps, ifcData.totalDocs], backgroundColor:['#66bb6a','#26a69a','#ffa726'] }]
+                        },
+                        options:{
+                            responsive:true, maintainAspectRatio:false,
+                            plugins:{
+                                legend:{ position:'bottom', labels:{ generateLabels: function(chart) { const data = chart.data; const total = data.datasets[0].data.reduce((a,b) => a+b, 0); return data.labels.map((label, i) => { const value = data.datasets[0].data[i]; const pct = total>0?((value/total)*100).toFixed(1):'0'; return { text: label + ': ' + value + ' (' + pct + '%)', fillStyle: data.datasets[0].backgroundColor[i], hidden: false, index: i }; }); } } },
+                                tooltip:{ callbacks:{ label: function(context) { const value = context.parsed; const total = context.dataset.data.reduce((a,b) => a+b, 0); const pct = total>0?((value/total)*100).toFixed(1):'0'; return context.label + ': ' + value + ' (' + pct + '%)'; } } }
+                            }
+                        }
+                    });
+                }
+
+                // IFC object bar chart
+                const ifcObjBar = document.getElementById('ifcObjectBarChart');
+                if (ifcObjBar && ifcData) {
+                    if (window.ifcObjChart) window.ifcObjChart.destroy();
+                    const top15 = ifcData.objectKPIs.sort((a,b) => b.count - a.count).slice(0,15);
+                    window.ifcObjChart = new Chart(ifcObjBar, {
+                        type:'bar',
+                        data:{
+                            labels: top15.map(o => o.name),
+                            datasets:[{ label:'Instances', data: top15.map(o => o.count), backgroundColor:'rgba(39,174,96,0.6)', borderColor:'#27ae60', borderWidth:1 }]
+                        },
+                        options:{
+                            responsive:true, maintainAspectRatio:false, indexAxis:'y',
+                            scales:{ x:{beginAtZero:true} },
+                            plugins:{ legend:{display:false} }
+                        }
+                    });
+                }
+
+                // Phase chart (BIMids only, shown in both BIMids-only and comparison modes)
+                const pc = document.getElementById('phaseChart');
+                if (pc && selected.length > 0) {
+                    if (window.pChart) window.pChart.destroy();
+                    window.pChart = new Chart(pc, {
+                        type:'bar',
+                        data:{
+                            labels:['Phase 1 (PD)\nRIBA 0-2','Phase 2 (FD/AUT)\nRIBA 3-4','Phase 3 (FP/TEND)\nRIBA 4-5','Phase 4 (EXE/ASB)\nRIBA 5','Phase 5 (OPE)\nRIBA 6-7'],
+                            datasets:[{ data:m.phases, backgroundColor:['#e3f2fd','#90caf9','#42a5f5','#1e88e5','#0d47a1'] }]
+                        },
+                        options:{
+                            responsive:true, maintainAspectRatio:false,
+                            scales:{ y:{beginAtZero:true, max:100, title:{display:true, text:'Percentage (%)'}, ticks:{callback:(v) => v + '%'}}, x:{ticks:{font:{size:9}}} },
+                            plugins:{legend:{display:false}}
+                        }
+                    });
+                }
+            }, 50);
+        }
+        
+        console.log('Dashboard ready');
+        render();
+    </script>
+</body>
+</html>
